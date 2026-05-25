@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # --- INFRASTRUCTURE ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: b2b_postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: b2b_db
+    ports:
+      - "5432:5432"
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: b2b_redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: b2b_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
+
+  # --- MICROSERVICES ---
+  auth-service:
+    build:
+      context: .
+      dockerfile: deployments/Dockerfile.auth
+    container_name: b2b_auth_service
+    ports:
+      - "50053:50053"
+    depends_on:
+      - postgres
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: deployments/Dockerfile.inventory
+    container_name: b2b_inventory_service
+    ports:
+      - "50052:50052"
+    depends_on:
+      - redis
+
+  order-service:
+    build:
+      context: .
+      dockerfile: deployments/Dockerfile.order
+    container_name: b2b_order_service
+    ports:
+      - "50051:50051"
+    depends_on:
+      - postgres
+      - rabbitmq
+
+  notification-worker:
+    build:
+      context: .
+      dockerfile: deployments/Dockerfile.worker
+    container_name: b2b_notification_worker
+    depends_on:
+      - rabbitmq
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: deployments/Dockerfile.gateway
+    container_name: b2b_api_gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - inventory-service
+      - order-service
