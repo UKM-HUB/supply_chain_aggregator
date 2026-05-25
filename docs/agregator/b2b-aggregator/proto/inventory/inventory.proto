@@ -1,0 +1,24 @@
+syntax = "proto3";
+package inventory;
+option go_package = "b2b-aggregator/pb/inventory";
+
+service InventoryService {
+  rpc SearchNearby (SearchNearbyRequest) returns (SearchNearbyResponse);
+}
+
+message SearchNearbyRequest {
+  string product_code = 1;
+  double latitude = 2;
+  double longitude = 3;
+  double radius_km = 4;
+}
+
+message SupplyItem {
+  string umkm_id = 1;
+  int32 stock = 2;
+  double distance = 3;
+}
+
+message SearchNearbyResponse {
+  repeated SupplyItem supplies = 1;
+}
