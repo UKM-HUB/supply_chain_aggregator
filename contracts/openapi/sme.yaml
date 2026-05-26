@@ -51,6 +51,20 @@ paths:
       responses:
         '200':
           description: Category list returned successfully
+  /api/v1/categories/{id}:
+    get:
+      summary: Get category detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category detail returned successfully
+        '404':
+          description: Category not found
 components:
   schemas:
     CreateSMERequest:

@@ -2,10 +2,14 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"sync"
 
 	"supply-chain-aggregator/services/sme-service/internal/entity"
 )
+
+var ErrCategoryNotFound = errors.New("category not found")
 
 type ListFilter struct {
 	CategoryID string
@@ -17,6 +21,7 @@ type SMERepository interface {
 	Create(ctx context.Context, sme *entity.SME) error
 	List(ctx context.Context, filter ListFilter) ([]entity.SME, error)
 	ListCategories(ctx context.Context) ([]entity.Category, error)
+	GetCategoryByID(ctx context.Context, id string) (*entity.Category, error)
 }
 
 type InMemorySMERepository struct {
@@ -64,16 +69,20 @@ func (r *InMemorySMERepository) List(ctx context.Context, filter ListFilter) ([]
 	}
 
 	result := make([]entity.SME, 0)
+	categoryID := strings.ToLower(strings.TrimSpace(filter.CategoryID))
+	status := strings.ToLower(strings.TrimSpace(filter.Status))
+	search := strings.ToLower(strings.TrimSpace(filter.Search))
+
 	for _, sme := range r.smes {
-		if filter.Status != "" && sme.Status != filter.Status {
+		if status != "" && strings.ToLower(sme.Status) != status {
 			continue
 		}
 
-		if filter.CategoryID != "" && !contains(sme.CategoryIDs, filter.CategoryID) {
+		if categoryID != "" && !containsCategory(sme.CategoryIDs, categoryID) {
 			continue
 		}
 
-		if filter.Search != "" && !containsText(sme.Name, filter.Search) && !containsText(sme.Description, filter.Search) {
+		if search != "" && !containsText(sme.Name, search) && !containsText(sme.Description, search) {
 			continue
 		}
 
@@ -99,9 +108,29 @@ func (r *InMemorySMERepository) ListCategories(ctx context.Context) ([]entity.Ca
 	return categories, nil
 }
 
-func contains(values []string, target string) bool {
+func (r *InMemorySMERepository) GetCategoryByID(ctx context.Context, id string) (*entity.Category, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	normalizedID := strings.ToLower(strings.TrimSpace(id))
+	for _, category := range r.categories {
+		if category.ID == normalizedID {
+			return &category, nil
+		}
+	}
+
+	return nil, ErrCategoryNotFound
+}
+
+func containsCategory(values []string, target string) bool {
 	for _, value := range values {
-		if value == target {
+		if strings.ToLower(strings.TrimSpace(value)) == target {
 			return true
 		}
 	}
@@ -110,33 +139,5 @@ func contains(values []string, target string) bool {
 }
 
 func containsText(value, search string) bool {
-	value = stringsToLower(value)
-	search = stringsToLower(search)
-
-	return len(search) == 0 || stringsContains(value, search)
-}
-
-func stringsToLower(value string) string {
-	result := []rune(value)
-	for index, char := range result {
-		if char >= 'A' && char <= 'Z' {
-			result[index] = char + 32
-		}
-	}
-
-	return string(result)
-}
-
-func stringsContains(value, search string) bool {
-	if len(search) > len(value) {
-		return false
-	}
-
-	for index := 0; index <= len(value)-len(search); index++ {
-		if value[index:index+len(search)] == search {
-			return true
-		}
-	}
-
-	return false
+	return strings.Contains(strings.ToLower(value), search)
 }

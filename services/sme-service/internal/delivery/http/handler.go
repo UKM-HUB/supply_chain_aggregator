@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"net/http"
 
 	"supply-chain-aggregator/services/sme-service/internal/entity"
@@ -57,6 +58,10 @@ func (h *Handler) CreateSME(c echo.Context) error {
 		Status:      request.Status,
 	})
 	if err != nil {
+		if errors.Is(err, usecase.ErrInvalidCategory) {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "invalid category"})
+		}
+
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "failed to create SME"})
 	}
 
@@ -73,6 +78,10 @@ func (h *Handler) ListSMEs(c echo.Context) error {
 		Search:     c.QueryParam("search"),
 	})
 	if err != nil {
+		if errors.Is(err, usecase.ErrInvalidCategory) {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "invalid category"})
+		}
+
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "failed to list SMEs"})
 	}
 
@@ -108,6 +117,21 @@ func (h *Handler) ListCategories(c echo.Context) error {
 	})
 }
 
+func (h *Handler) GetCategory(c echo.Context) error {
+	category, err := h.smeUsecase.GetCategoryByID(c.Request().Context(), c.Param("id"))
+	if err != nil {
+		if errors.Is(err, usecase.ErrInvalidCategory) {
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "category not found"})
+		}
+
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "failed to get category"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"data": formatCategory(*category),
+	})
+}
+
 func formatSME(sme entity.SME) map[string]interface{} {
 	return map[string]interface{}{
 		"id":           sme.ID,
@@ -124,5 +148,13 @@ func formatSME(sme entity.SME) map[string]interface{} {
 		"status":       sme.Status,
 		"created_at":   sme.CreatedAt,
 		"updated_at":   sme.UpdatedAt,
+	}
+}
+
+func formatCategory(category entity.Category) map[string]interface{} {
+	return map[string]interface{}{
+		"id":          category.ID,
+		"name":        category.Name,
+		"description": category.Description,
 	}
 }

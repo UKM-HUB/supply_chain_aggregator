@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 )
+
+var ErrInvalidCategory = errors.New("invalid category")
 
 type CreateSMEInput struct {
 	OwnerID     string
@@ -45,6 +48,11 @@ func (u *SMEUsecase) Create(ctx context.Context, input CreateSMEInput) (*entity.
 		status = "active"
 	}
 
+	categoryIDs, err := u.normalizeCategoryIDs(ctx, input.CategoryIDs)
+	if err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
 	sme := &entity.SME{
 		ID:          uuid.NewString(),
@@ -53,7 +61,7 @@ func (u *SMEUsecase) Create(ctx context.Context, input CreateSMEInput) (*entity.
 		Phone:       input.Phone,
 		Address:     input.Address,
 		Description: input.Description,
-		CategoryIDs: input.CategoryIDs,
+		CategoryIDs: categoryIDs,
 		Products:    input.Products,
 		Capacity:    input.Capacity,
 		Latitude:    input.Latitude,
@@ -71,8 +79,15 @@ func (u *SMEUsecase) Create(ctx context.Context, input CreateSMEInput) (*entity.
 }
 
 func (u *SMEUsecase) List(ctx context.Context, input ListSMEInput) ([]entity.SME, error) {
+	categoryID := strings.ToLower(strings.TrimSpace(input.CategoryID))
+	if categoryID != "" {
+		if _, err := u.smeRepo.GetCategoryByID(ctx, categoryID); err != nil {
+			return nil, ErrInvalidCategory
+		}
+	}
+
 	return u.smeRepo.List(ctx, repository.ListFilter{
-		CategoryID: input.CategoryID,
+		CategoryID: categoryID,
 		Status:     input.Status,
 		Search:     input.Search,
 	})
@@ -80,4 +95,38 @@ func (u *SMEUsecase) List(ctx context.Context, input ListSMEInput) ([]entity.SME
 
 func (u *SMEUsecase) ListCategories(ctx context.Context) ([]entity.Category, error) {
 	return u.smeRepo.ListCategories(ctx)
+}
+
+func (u *SMEUsecase) GetCategoryByID(ctx context.Context, id string) (*entity.Category, error) {
+	category, err := u.smeRepo.GetCategoryByID(ctx, id)
+	if err != nil {
+		return nil, ErrInvalidCategory
+	}
+
+	return category, nil
+}
+
+func (u *SMEUsecase) normalizeCategoryIDs(ctx context.Context, categoryIDs []string) ([]string, error) {
+	normalized := make([]string, 0, len(categoryIDs))
+	seen := make(map[string]struct{})
+
+	for _, categoryID := range categoryIDs {
+		id := strings.ToLower(strings.TrimSpace(categoryID))
+		if id == "" {
+			continue
+		}
+
+		if _, exists := seen[id]; exists {
+			continue
+		}
+
+		if _, err := u.smeRepo.GetCategoryByID(ctx, id); err != nil {
+			return nil, ErrInvalidCategory
+		}
+
+		seen[id] = struct{}{}
+		normalized = append(normalized, id)
+	}
+
+	return normalized, nil
 }

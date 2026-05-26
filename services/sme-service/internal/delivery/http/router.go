@@ -9,4 +9,5 @@ func RegisterRoutes(e *echo.Echo, handler *Handler) {
 	api.POST("/umkm", handler.CreateSME)
 	api.GET("/umkm", handler.ListSMEs)
 	api.GET("/categories", handler.ListCategories)
+	api.GET("/categories/:id", handler.GetCategory)
 }
