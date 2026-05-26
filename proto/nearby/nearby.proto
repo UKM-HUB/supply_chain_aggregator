@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package nearby;
+
+option go_package = "supply-chain-aggregator/services/nearby-service/internal/delivery/grpc/pb;nearbypb";
+
+service NearbyService {
+  rpc SearchNearbySMEs(SearchNearbySMEsRequest) returns (SearchNearbySMEsResponse);
+}
+
+message SearchNearbySMEsRequest {
+  double latitude = 1;
+  double longitude = 2;
+  string category_id = 3;
+  double radius_km = 4;
+  int32 limit = 5;
+}
+
+message NearbySME {
+  string id = 1;
+  string name = 2;
+  string address = 3;
+  string description = 4;
+  repeated string category_ids = 5;
+  double latitude = 6;
+  double longitude = 7;
+  string status = 8;
+  double distance_km = 9;
+}
+
+message SearchNearbySMEsResponse {
+  repeated NearbySME data = 1;
+  int32 total = 2;
+  double radius_km = 3;
+}
