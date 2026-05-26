@@ -33,6 +33,7 @@ go.sum  (copy from nearby-service if same deps)
 - Step 8: payment-service (complete, builds, all endpoints tested)
 - Step 9: communication-service (complete, builds, tested)
 - Step 10: report-service (complete, builds, all endpoints tested)
+- Step 11: OpenAPI contracts (complete — 7 contracts total)
 
 ## Transaction Service
 - Module: `supply-chain-aggregator/services/transaction-service`
