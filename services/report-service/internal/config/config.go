@@ -1,6 +1,6 @@
 package config
 
-import "os"
+import pkgconfig "supply-chain-aggregator/pkg/config"
 
 type Config struct {
 	AppName     string
@@ -10,17 +10,8 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		AppName:     getEnv("APP_NAME", "report-service"),
-		Environment: getEnv("APP_ENV", "development"),
-		HTTPPort:    getEnv("HTTP_PORT", "8087"),
+		AppName:     pkgconfig.GetEnv("APP_NAME", "report-service"),
+		Environment: pkgconfig.GetEnv("APP_ENV", "development"),
+		HTTPPort:    pkgconfig.GetEnv("HTTP_PORT", "8087"),
 	}
-}
-
-func getEnv(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-
-	return value
 }

@@ -1,6 +1,6 @@
 package config
 
-import "os"
+import pkgconfig "supply-chain-aggregator/pkg/config"
 
 type Config struct {
 	AppName     string
@@ -12,19 +12,10 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		AppName:     getEnv("APP_NAME", "auth-service"),
-		Environment: getEnv("APP_ENV", "development"),
-		HTTPPort:    getEnv("HTTP_PORT", "8081"),
-		GRPCPort:    getEnv("GRPC_PORT", "50051"),
-		JWTSecret:   getEnv("JWT_SECRET", "development-secret"),
+		AppName:     pkgconfig.GetEnv("APP_NAME", "auth-service"),
+		Environment: pkgconfig.GetEnv("APP_ENV", "development"),
+		HTTPPort:    pkgconfig.GetEnv("HTTP_PORT", "8081"),
+		GRPCPort:    pkgconfig.GetEnv("GRPC_PORT", "50051"),
+		JWTSecret:   pkgconfig.GetEnv("JWT_SECRET", "development-secret"),
 	}
-}
-
-func getEnv(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-
-	return value
 }

@@ -1,6 +1,6 @@
 package config
 
-import "os"
+import pkgconfig "supply-chain-aggregator/pkg/config"
 
 type Config struct {
 	AppName       string
@@ -13,20 +13,11 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		AppName:       getEnv("APP_NAME", "supply-chain-api-gateway"),
-		Environment:   getEnv("APP_ENV", "development"),
-		HTTPPort:      getEnv("HTTP_PORT", "8080"),
-		JWTSecret:     getEnv("JWT_SECRET", "development-secret"),
-		OpenAPIPath:   getEnv("OPENAPI_PATH", "../../contracts/openapi/api-gateway.yaml"),
-		ContractsPath: getEnv("CONTRACTS_PATH", "../../contracts/openapi"),
+		AppName:       pkgconfig.GetEnv("APP_NAME", "supply-chain-api-gateway"),
+		Environment:   pkgconfig.GetEnv("APP_ENV", "development"),
+		HTTPPort:      pkgconfig.GetEnv("HTTP_PORT", "8080"),
+		JWTSecret:     pkgconfig.GetEnv("JWT_SECRET", "development-secret"),
+		OpenAPIPath:   pkgconfig.GetEnv("OPENAPI_PATH", "../../contracts/openapi/api-gateway.yaml"),
+		ContractsPath: pkgconfig.GetEnv("CONTRACTS_PATH", "../../contracts/openapi"),
 	}
-}
-
-func getEnv(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-
-	return value
 }

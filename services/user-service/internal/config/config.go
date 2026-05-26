@@ -10,8 +10,8 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		AppName:     pkgconfig.GetEnv("APP_NAME", "transaction-service"),
+		AppName:     pkgconfig.GetEnv("APP_NAME", "user-service"),
 		Environment: pkgconfig.GetEnv("APP_ENV", "development"),
-		HTTPPort:    pkgconfig.GetEnv("HTTP_PORT", "8084"),
+		HTTPPort:    pkgconfig.GetEnv("HTTP_PORT", "8088"),
 	}
 }
