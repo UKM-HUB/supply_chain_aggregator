@@ -1,0 +1,81 @@
+openapi: 3.0.3
+info:
+  title: Supply Chain Aggregator Nearby Service
+  version: 0.1.0
+  description: HTTP contract for nearby SME discovery using latitude and longitude.
+servers:
+  - url: http://localhost:8083
+paths:
+  /health:
+    get:
+      summary: Nearby service health check
+      responses:
+        '200':
+          description: Nearby service is healthy
+  /api/v1/nearby/umkm:
+    get:
+      summary: Find nearest SMEs by coordinates, category, and radius
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: radius_km
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+            default: 10
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Nearby SMEs returned successfully
+        '400':
+          description: Invalid latitude or longitude
+components:
+  schemas:
+    NearbySME:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        description:
+          type: string
+        category_ids:
+          type: array
+          items:
+            type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        status:
+          type: string
+        distance_km:
+          type: number
+          format: double
