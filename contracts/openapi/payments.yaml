@@ -1,0 +1,158 @@
+openapi: 3.0.3
+info:
+  title: Supply Chain Aggregator Payment Service
+  version: 0.1.0
+  description: HTTP contract for virtual account creation via Xendit and payment webhook handling.
+servers:
+  - url: http://localhost:8085
+paths:
+  /health:
+    get:
+      summary: Payment service health check
+      responses:
+        '200':
+          description: Payment service is healthy
+  /api/v1/gateway/create-va:
+    post:
+      summary: Create a Xendit virtual account for a transaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVARequest'
+      responses:
+        '201':
+          description: Virtual account created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CreateVAResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Xendit API error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/webhooks/xendit:
+    post:
+      summary: Receive Xendit payment webhook callback
+      description: >
+        Called by Xendit when a payment is completed. The `x-callback-token` header
+        must match the XENDIT_CALLBACK_TOKEN environment variable.
+        On PAID status, the service updates the payment log and publishes a
+        `payment.paid` event to RabbitMQ.
+      parameters:
+        - name: x-callback-token
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Xendit callback token for webhook validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/XenditWebhookPayload'
+      responses:
+        '200':
+          description: Webhook received and processed
+        '401':
+          description: Invalid callback token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Payment log not found for the given invoice
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreateVARequest:
+      type: object
+      required:
+        - invoice_number
+        - amount
+        - user_phone
+      properties:
+        invoice_number:
+          type: string
+          example: INV-20260526-1001
+        amount:
+          type: number
+          format: double
+          example: 3000000
+        user_phone:
+          type: string
+          example: '628123456789'
+    CreateVAResponse:
+      type: object
+      properties:
+        invoice_number:
+          type: string
+          example: INV-20260526-1001
+        payment_url:
+          type: string
+          example: https://checkout.xendit.co/web/mock-INV-20260526-1001
+        amount:
+          type: number
+          format: double
+          example: 3000000
+        status:
+          type: string
+          example: pending
+    XenditWebhookPayload:
+      type: object
+      required:
+        - id
+        - external_id
+        - status
+        - amount
+      properties:
+        id:
+          type: string
+          description: Xendit invoice ID
+          example: xendit-inv-001
+        external_id:
+          type: string
+          description: Invoice number used as external_id when creating the Xendit invoice
+          example: INV-20260526-1001
+        status:
+          type: string
+          description: Payment status from Xendit
+          enum: [PENDING, PAID, EXPIRED, FAILED]
+          example: PAID
+        amount:
+          type: number
+          format: double
+          example: 3000000
+        paid_at:
+          type: string
+          format: date-time
+          example: '2026-05-26T20:00:00Z'
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: invalid callback token
