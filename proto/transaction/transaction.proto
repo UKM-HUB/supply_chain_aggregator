@@ -8,6 +8,7 @@ service TransactionService {
   rpc CreateTransaction(CreateTransactionRequest) returns (TransactionResponse);
   rpc GetTransaction(GetTransactionRequest) returns (TransactionResponse);
   rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+  rpc UpdateTransactionStatus(UpdateTransactionStatusRequest) returns (UpdateTransactionStatusResponse);
 }
 
 message CreateTransactionRequest {
@@ -42,4 +43,14 @@ message TransactionResponse {
 message ListTransactionsResponse {
   repeated Transaction data = 1;
   int32 total = 2;
+}
+
+message UpdateTransactionStatusRequest {
+  string id     = 1;
+  string status = 2;
+}
+
+message UpdateTransactionStatusResponse {
+  bool   success = 1;
+  string message = 2;
 }
