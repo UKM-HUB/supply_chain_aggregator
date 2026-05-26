@@ -1,0 +1,114 @@
+include:
+  - docker-compose.infra.yml
+
+services:
+  auth-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: auth-service
+    container_name: sca_auth
+    environment:
+      APP_ENV:    production
+      HTTP_PORT:  "8081"
+      JWT_SECRET: ${JWT_SECRET:-changeme-in-production}
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+
+  sme-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: sme-service
+    container_name: sca_sme
+    environment:
+      APP_ENV:   production
+      HTTP_PORT: "8082"
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+
+  nearby-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: nearby-service
+    container_name: sca_nearby
+    environment:
+      APP_ENV:   production
+      HTTP_PORT: "8083"
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
+
+  transaction-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: transaction-service
+    container_name: sca_transaction
+    environment:
+      APP_ENV:   production
+      HTTP_PORT: "8084"
+    ports:
+      - "8084:8084"
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: payment-service
+    container_name: sca_payment
+    environment:
+      APP_ENV:               production
+      HTTP_PORT:             "8085"
+      XENDIT_SECRET_KEY:     ${XENDIT_SECRET_KEY:-}
+      XENDIT_CALLBACK_TOKEN: ${XENDIT_CALLBACK_TOKEN:-}
+      RABBITMQ_URL:          amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+    ports:
+      - "8085:8085"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  communication-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: communication-service
+    container_name: sca_communication
+    environment:
+      APP_ENV:          production
+      HTTP_PORT:        "8086"
+      RABBITMQ_URL:     amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-}
+      WHATSAPP_TOKEN:   ${WHATSAPP_TOKEN:-}
+    ports:
+      - "8086:8086"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  report-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: report-service
+    container_name: sca_report
+    environment:
+      APP_ENV:   production
+      HTTP_PORT: "8087"
+    ports:
+      - "8087:8087"
+    restart: unless-stopped

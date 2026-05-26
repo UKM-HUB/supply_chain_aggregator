@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: sca_postgres
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-sca}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sca_pass}
+      POSTGRES_DB:       ${POSTGRES_DB:-supply_chain}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sca}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: sca_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

@@ -36,6 +36,7 @@ go.sum  (copy from nearby-service if same deps)
 - Step 11: OpenAPI contracts (complete — 7 contracts total)
 - Step 12: gRPC proto contracts (complete — 6 proto files total)
 - Step 13: DB migrations (complete — 8 migrations, 16 files)
+- Step 14: E2E MVP flow (complete — script+docker-compose, all 9 steps pass)
 
 ## Transaction Service
 - Module: `supply-chain-aggregator/services/transaction-service`
