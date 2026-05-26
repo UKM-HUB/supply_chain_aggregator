@@ -1,6 +1,6 @@
 package config
 
-import "os"
+import pkgconfig "supply-chain-aggregator/pkg/config"
 
 type Config struct {
 	AppName             string
@@ -13,20 +13,11 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		AppName:             getEnv("APP_NAME", "payment-service"),
-		Environment:         getEnv("APP_ENV", "development"),
-		HTTPPort:            getEnv("HTTP_PORT", "8085"),
-		XenditSecretKey:     getEnv("XENDIT_SECRET_KEY", ""),
-		XenditCallbackToken: getEnv("XENDIT_CALLBACK_TOKEN", ""),
-		RabbitMQURL:         getEnv("RABBITMQ_URL", ""),
+		AppName:             pkgconfig.GetEnv("APP_NAME", "payment-service"),
+		Environment:         pkgconfig.GetEnv("APP_ENV", "development"),
+		HTTPPort:            pkgconfig.GetEnv("HTTP_PORT", "8085"),
+		XenditSecretKey:     pkgconfig.GetEnv("XENDIT_SECRET_KEY", ""),
+		XenditCallbackToken: pkgconfig.GetEnv("XENDIT_CALLBACK_TOKEN", ""),
+		RabbitMQURL:         pkgconfig.GetEnv("RABBITMQ_URL", ""),
 	}
-}
-
-func getEnv(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-
-	return value
 }

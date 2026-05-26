@@ -2,7 +2,10 @@ module supply-chain-aggregator/services/nearby-service
 
 go 1.23
 
-require github.com/labstack/echo/v4 v4.13.3
+require (
+	github.com/labstack/echo/v4 v4.13.3
+	supply-chain-aggregator/pkg v0.0.0
+)
 
 require (
 	github.com/labstack/gommon v0.4.2 // indirect
@@ -16,3 +19,5 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 )
+
+replace supply-chain-aggregator/pkg => ../../pkg

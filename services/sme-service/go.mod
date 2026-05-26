@@ -5,6 +5,7 @@ go 1.23
 require (
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.13.3
+	supply-chain-aggregator/pkg v0.0.0
 )
 
 require (
@@ -19,3 +20,5 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 )
+
+replace supply-chain-aggregator/pkg => ../../pkg
