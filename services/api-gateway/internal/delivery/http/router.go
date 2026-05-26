@@ -9,6 +9,8 @@ import (
 func RegisterRoutes(e *echo.Echo, handler *Handler, jwtSecret string) {
 	e.GET("/health", handler.Health)
 	e.GET("/openapi.yaml", handler.OpenAPI)
+	e.GET("/swagger", handler.SwaggerUI)
+	e.GET("/openapi/:file", handler.ServeContract)
 
 	api := e.Group("/api/v1")
 	api.GET("/health", handler.Health)

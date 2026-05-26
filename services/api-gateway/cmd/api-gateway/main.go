@@ -19,7 +19,7 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORS())
 
-	handler := deliveryHTTP.NewHandler(cfg.AppName, cfg.Environment, cfg.OpenAPIPath)
+	handler := deliveryHTTP.NewHandler(cfg.AppName, cfg.Environment, cfg.OpenAPIPath, cfg.ContractsPath)
 	deliveryHTTP.RegisterRoutes(e, handler, cfg.JWTSecret)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", cfg.HTTPPort)))
