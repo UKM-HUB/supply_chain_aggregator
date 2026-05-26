@@ -31,6 +31,7 @@ go.sum  (copy from nearby-service if same deps)
 - Step 1-6: monorepo, api-gateway, auth, sme, category filter, nearby-service
 - Step 7: transaction-service (complete, builds, all endpoints tested)
 - Step 8: payment-service (complete, builds, all endpoints tested)
+- Step 9: communication-service (complete, builds, tested)
 
 ## Transaction Service
 - Module: `supply-chain-aggregator/services/transaction-service`
