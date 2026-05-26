@@ -56,6 +56,18 @@ func (h *Handler) ListSMEs(c echo.Context) error {
 	})
 }
 
+func (h *Handler) ListCategories(c echo.Context) error {
+	return c.JSON(http.StatusNotImplemented, map[string]string{
+		"message": "category listing will be forwarded to sme-service",
+	})
+}
+
+func (h *Handler) GetCategory(c echo.Context) error {
+	return c.JSON(http.StatusNotImplemented, map[string]string{
+		"message": "category detail will be forwarded to sme-service",
+	})
+}
+
 func (h *Handler) FindNearbySMEs(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
 		"message": "nearby SME search will be forwarded to nearby-service",

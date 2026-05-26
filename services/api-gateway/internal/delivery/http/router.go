@@ -22,6 +22,8 @@ func RegisterRoutes(e *echo.Echo, handler *Handler, jwtSecret string) {
 
 	protected.GET("/users", handler.ListUsers)
 	protected.GET("/umkm", handler.ListSMEs)
+	protected.GET("/categories", handler.ListCategories)
+	protected.GET("/categories/:id", handler.GetCategory)
 	protected.GET("/nearby/umkm", handler.FindNearbySMEs)
 	protected.POST("/transactions", handler.CreateTransaction)
 	protected.GET("/transactions", handler.ListTransactions)

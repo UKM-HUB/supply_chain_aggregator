@@ -38,6 +38,40 @@ paths:
   /api/v1/umkm:
     get:
       summary: List SMEs
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '501':
+          description: SME service integration is not implemented yet
+  /api/v1/categories:
+    get:
+      summary: List SME categories
+      responses:
+        '501':
+          description: SME service integration is not implemented yet
+  /api/v1/categories/{id}:
+    get:
+      summary: Get SME category detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '501':
           description: SME service integration is not implemented yet
