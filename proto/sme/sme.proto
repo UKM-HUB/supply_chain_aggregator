@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package sme;
+
+option go_package = "supply-chain-aggregator/services/sme-service/internal/delivery/grpc/pb;smepb";
+
+service SMEService {
+  rpc ListSMEs(ListSMEsRequest) returns (ListSMEsResponse);
+}
+
+message ListSMEsRequest {
+  string category_id = 1;
+  string status = 2;
+  string search = 3;
+}
+
+message SME {
+  string id = 1;
+  string owner_id = 2;
+  string name = 3;
+  string phone = 4;
+  string address = 5;
+  string description = 6;
+  repeated string category_ids = 7;
+  repeated string products = 8;
+  string capacity = 9;
+  double latitude = 10;
+  double longitude = 11;
+  string status = 12;
+}
+
+message ListSMEsResponse {
+  repeated SME data = 1;
+  int32 total = 2;
+}
