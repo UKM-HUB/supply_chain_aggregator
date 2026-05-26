@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package payment;
+
+option go_package = "supply-chain-aggregator/services/payment-service/internal/delivery/grpc/pb;paymentpb";
+
+service PaymentService {
+  rpc CreateVirtualAccount(CreateVARequest) returns (CreateVAResponse);
+  rpc GetPaymentLog(GetPaymentLogRequest) returns (PaymentLogResponse);
+}
+
+message CreateVARequest {
+  string invoice_number = 1;
+  double amount = 2;
+  string user_phone = 3;
+}
+
+message CreateVAResponse {
+  string invoice_number = 1;
+  string payment_url = 2;
+  double amount = 3;
+  string status = 4;
+}
+
+message GetPaymentLogRequest {
+  string invoice_number = 1;
+}
+
+message PaymentLogResponse {
+  string id = 1;
+  string invoice_number = 2;
+  double amount = 3;
+  string user_phone = 4;
+  string payment_url = 5;
+  string xendit_invoice_id = 6;
+  string status = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}

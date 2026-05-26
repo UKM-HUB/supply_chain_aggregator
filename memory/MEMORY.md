@@ -30,6 +30,7 @@ go.sum  (copy from nearby-service if same deps)
 ## Steps Completed
 - Step 1-6: monorepo, api-gateway, auth, sme, category filter, nearby-service
 - Step 7: transaction-service (complete, builds, all endpoints tested)
+- Step 8: payment-service (complete, builds, all endpoints tested)
 
 ## Transaction Service
 - Module: `supply-chain-aggregator/services/transaction-service`
@@ -43,9 +44,23 @@ go.sum  (copy from nearby-service if same deps)
 - Invoice: INV-YYYYMMDD-<seq>
 - Proto: proto/transaction/transaction.proto
 
+## Payment Service
+- Module: `supply-chain-aggregator/services/payment-service`
+- Port: 8085
+- Deps: echo + `github.com/rabbitmq/amqp091-go v1.10.0` (go mod tidy required)
+- Endpoints:
+  - POST /api/v1/gateway/create-va  (invoice_number, amount, user_phone)
+  - POST /api/v1/webhooks/xendit    (x-callback-token header)
+- Xendit: real HTTP client; falls back to mock when XENDIT_SECRET_KEY is empty
+- RabbitMQ: publisher falls back to log when RABBITMQ_URL is empty
+- Webhook flow: validate token → update status → publish payment.paid event (fire-and-forget goroutine)
+- RabbitMQ message shape: `{"invoice":"INV-xxx","amount":1000000,"phone":"628123456789"}`
+- Env vars: XENDIT_SECRET_KEY, XENDIT_CALLBACK_TOKEN, RABBITMQ_URL
+
 ## Proto Files
 - proto/nearby/nearby.proto
 - proto/transaction/transaction.proto
+- proto/payment/payment.proto
 
 ## Patterns
 - In-memory repos with seed data (no DB yet)
