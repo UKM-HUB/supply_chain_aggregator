@@ -1,0 +1,5 @@
+notification-service/
+├── main.go
+├── go.mod
+├── .env
+├── docker-compose.yml

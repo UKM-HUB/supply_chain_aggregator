@@ -1,0 +1,15 @@
+Frontend
+   ↓
+API Gateway
+   ↓
+Transaction Service
+   ↓
+Create Transaction
+   ↓
+Save PostgreSQL
+   ↓
+Publish RabbitMQ
+   ↓
+WhatsApp Service Consume Queue
+   ↓
+Send Notification
