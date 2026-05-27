@@ -1,0 +1,17 @@
+project/
+├── main.go
+├── go.mod
+├── config/
+│   └── config.go
+├── database/
+│   └── postgres.go
+├── models/
+│   └── transaction.go
+├── handlers/
+│   ├── gateway.go
+│   └── webhook.go
+├── services/
+│   ├── xendit.go
+│   └── rabbitmq.go
+└── routes/
+    └── routes.go

@@ -1,0 +1,16 @@
+golang-api/
+├── main.go
+├── go.mod
+├── .env
+├── config/
+│   └── database.go
+├── models/
+│   ├── user.go
+│   ├── umkm.go
+│   ├── factory.go
+│   └── transaction.go
+├── handlers/
+│   ├── user_handler.go
+│   ├── umkm_handler.go
+│   ├── factory_handler.go
+│   └── transaction_handler.go

@@ -1,0 +1,8 @@
+auth-api/
+│
+├── main.go
+├── database.go
+├── models.go
+├── auth.go
+├── middleware.go
+└── go.mod

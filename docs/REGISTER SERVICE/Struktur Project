@@ -1,0 +1,12 @@
+project/
+│
+├── main.go
+├── config/
+│   └── database.go
+├── models/
+│   └── user.go
+├── handlers/
+│   └── auth.go
+├── routes/
+│   └── routes.go
+├── go.mod
