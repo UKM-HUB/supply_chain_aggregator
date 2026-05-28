@@ -10,11 +10,19 @@ services:
         SERVICE_NAME: auth-service
     container_name: sca_auth
     environment:
-      APP_ENV:    production
-      HTTP_PORT:  "8081"
-      JWT_SECRET: ${JWT_SECRET:-changeme-in-production}
+      APP_ENV:       production
+      HTTP_PORT:     "8081"
+      GRPC_PORT:     "50051"
+      JWT_SECRET:    ${JWT_SECRET:-changeme-in-production}
+      REDIS_HOST:    redis
+      REDIS_PORT:    "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
       - "8081:8081"
+      - "50051:50051"
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   sme-service:
@@ -25,10 +33,21 @@ services:
         SERVICE_NAME: sme-service
     container_name: sca_sme
     environment:
-      APP_ENV:   production
-      HTTP_PORT: "8082"
+      APP_ENV:              production
+      HTTP_PORT:            "8082"
+      GRPC_PORT:            "50052"
+      REDIS_HOST:           redis
+      REDIS_PORT:           "6379"
+      REDIS_PASSWORD:       ${REDIS_PASSWORD:-}
+      ELASTICSEARCH_URL:    http://elasticsearch:9200
     ports:
       - "8082:8082"
+      - "50052:50052"
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     restart: unless-stopped
 
   nearby-service:
@@ -55,8 +74,10 @@ services:
     environment:
       APP_ENV:   production
       HTTP_PORT: "8084"
+      GRPC_PORT: "50054"
     ports:
       - "8084:8084"
+      - "50054:50054"
     restart: unless-stopped
 
   payment-service:
@@ -107,8 +128,14 @@ services:
         SERVICE_NAME: report-service
     container_name: sca_report
     environment:
-      APP_ENV:   production
-      HTTP_PORT: "8087"
+      APP_ENV:           production
+      HTTP_PORT:         "8087"
+      REPORT_OUTPUT_DIR: /app/reports
+    volumes:
+      - report_data:/app/reports
     ports:
       - "8087:8087"
     restart: unless-stopped
+
+volumes:
+  report_data:
