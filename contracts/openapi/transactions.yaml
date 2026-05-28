@@ -1,0 +1,210 @@
+openapi: 3.0.3
+info:
+  title: Supply Chain Aggregator Transaction Service
+  version: 0.1.0
+  description: HTTP contract for transaction management including create, list, detail, and status update.
+servers:
+  - url: http://localhost:8084
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Transaction service health check
+      security: []
+      responses:
+        '200':
+          description: Transaction service is healthy
+  /api/v1/transactions:
+    post:
+      summary: Create a new transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: Transaction created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: List transactions with optional user filter and pagination
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+            example: user-corp-001
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, paid, failed, cancelled]
+      responses:
+        '200':
+          description: Transaction list returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+  /api/v1/transactions/{id}:
+    get:
+      summary: Get transaction detail by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: txn-seed-001
+      responses:
+        '200':
+          description: Transaction detail returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/transactions/{id}/status:
+    patch:
+      summary: Update transaction status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStatusRequest'
+      responses:
+        '200':
+          description: Status updated successfully
+        '400':
+          description: Invalid status value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreateTransactionRequest:
+      type: object
+      required:
+        - user_id
+        - amount
+        - payment_method
+      properties:
+        user_id:
+          type: string
+          example: user-corp-001
+        amount:
+          type: number
+          format: double
+          example: 3000000
+        payment_method:
+          type: string
+          example: virtual_account
+    UpdateStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [pending, paid, failed, cancelled]
+          example: paid
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 3d78e244-db98-8d34-e9d7-c02c1874db72
+        invoice_number:
+          type: string
+          example: INV-20260526-1001
+        user_id:
+          type: string
+          example: user-corp-001
+        amount:
+          type: number
+          format: double
+          example: 3000000
+        status:
+          type: string
+          enum: [pending, paid, failed, cancelled]
+          example: pending
+        payment_method:
+          type: string
+          example: virtual_account
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TransactionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        total:
+          type: integer
+          example: 3
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: transaction not found

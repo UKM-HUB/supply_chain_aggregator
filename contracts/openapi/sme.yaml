@@ -1,0 +1,116 @@
+openapi: 3.0.3
+info:
+  title: Supply Chain Aggregator SME Service
+  version: 0.1.0
+  description: HTTP contract for SME profiles and category filtering.
+servers:
+  - url: http://localhost:8082
+paths:
+  /health:
+    get:
+      summary: SME service health check
+      responses:
+        '200':
+          description: SME service is healthy
+  /api/v1/umkm:
+    post:
+      summary: Create SME profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSMERequest'
+      responses:
+        '201':
+          description: SME profile created successfully
+    get:
+      summary: List SMEs with optional category filter
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SME list returned successfully
+  /api/v1/categories:
+    get:
+      summary: List available SME categories
+      responses:
+        '200':
+          description: Category list returned successfully
+  /api/v1/categories/{id}:
+    get:
+      summary: Get category detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category detail returned successfully
+        '404':
+          description: Category not found
+components:
+  schemas:
+    CreateSMERequest:
+      type: object
+      required:
+        - name
+        - category_ids
+        - latitude
+        - longitude
+      properties:
+        owner_id:
+          type: string
+        name:
+          type: string
+          example: UMKM Maju
+        phone:
+          type: string
+          example: '628123456789'
+        address:
+          type: string
+        description:
+          type: string
+        category_ids:
+          type: array
+          items:
+            type: string
+          example:
+            - food
+        products:
+          type: array
+          items:
+            type: string
+          example:
+            - frozen food
+            - snack
+        capacity:
+          type: string
+          example: 1000 pcs per week
+        latitude:
+          type: number
+          format: double
+          example: -6.2
+        longitude:
+          type: number
+          format: double
+          example: 106.8
+        status:
+          type: string
+          example: active

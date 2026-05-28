@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: Supply Chain Aggregator API Gateway
+  version: 0.1.0
+  description: Public HTTP contract for the supply chain aggregator API Gateway.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Gateway health check
+      security: []
+      responses:
+        '200':
+          description: Gateway is healthy
+  /api/v1/auth/login:
+    post:
+      summary: Login user
+      security: []
+      responses:
+        '501':
+          description: Auth service integration is not implemented yet
+  /api/v1/auth/register:
+    post:
+      summary: Register user or SME
+      security: []
+      responses:
+        '501':
+          description: Auth service integration is not implemented yet
+  /api/v1/users:
+    get:
+      summary: List users
+      responses:
+        '501':
+          description: User service integration is not implemented yet
+  /api/v1/umkm:
+    get:
+      summary: List SMEs
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '501':
+          description: SME service integration is not implemented yet
+  /api/v1/categories:
+    get:
+      summary: List SME categories
+      responses:
+        '501':
+          description: SME service integration is not implemented yet
+  /api/v1/categories/{id}:
+    get:
+      summary: Get SME category detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '501':
+          description: SME service integration is not implemented yet
+  /api/v1/nearby/umkm:
+    get:
+      summary: Find nearby SMEs
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: radius_km
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '501':
+          description: Nearby service integration is not implemented yet
+  /api/v1/transactions:
+    post:
+      summary: Create transaction
+      responses:
+        '501':
+          description: Transaction service integration is not implemented yet
+    get:
+      summary: List transactions
+      responses:
+        '501':
+          description: Transaction service integration is not implemented yet
+  /api/v1/transactions/{id}:
+    get:
+      summary: Get transaction detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '501':
+          description: Transaction service integration is not implemented yet
+  /api/v1/gateway/create-va:
+    post:
+      summary: Create virtual account
+      responses:
+        '501':
+          description: Payment service integration is not implemented yet
+  /api/v1/reports/daily:
+    get:
+      summary: Get daily report
+      responses:
+        '501':
+          description: Report service integration is not implemented yet
+  /api/v1/reports/monthly:
+    get:
+      summary: Get monthly report
+      responses:
+        '501':
+          description: Report service integration is not implemented yet
+  /api/v1/reports/export:
+    get:
+      summary: Export report
+      responses:
+        '501':
+          description: Report service integration is not implemented yet
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

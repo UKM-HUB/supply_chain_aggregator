@@ -1,0 +1,102 @@
+openapi: 3.0.3
+info:
+  title: Supply Chain Aggregator Auth Service
+  version: 0.1.0
+  description: HTTP contract for authentication and JWT access.
+servers:
+  - url: http://localhost:8081
+paths:
+  /health:
+    get:
+      summary: Auth service health check
+      responses:
+        '200':
+          description: Auth service is healthy
+  /api/v1/auth/register:
+    post:
+      summary: Register user, corporation, or SME account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+        '409':
+          description: Email already exists
+  /api/v1/auth/login:
+    post:
+      summary: Login and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid email or password
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh JWT token
+      responses:
+        '501':
+          description: Refresh token flow is not implemented yet
+  /api/v1/auth/logout:
+    post:
+      summary: Logout user
+      responses:
+        '200':
+          description: Logout successful
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: UMKM Maju
+        email:
+          type: string
+          format: email
+          example: owner@umkm.test
+        phone:
+          type: string
+          example: '628123456789'
+        password:
+          type: string
+          format: password
+          example: '123456'
+        role:
+          type: string
+          example: SME
+        latitude:
+          type: number
+          format: double
+          example: -6.2
+        longitude:
+          type: number
+          format: double
+          example: 106.8
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: owner@umkm.test
+        password:
+          type: string
+          format: password
+          example: '123456'

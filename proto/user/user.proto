@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "supply-chain-aggregator/services/user-service/internal/delivery/grpc/pb;userpb";
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (UserResponse);
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message ListUsersRequest {
+  string search = 1;
+  string status = 2;
+  int32  page   = 3;
+  int32  limit  = 4;
+}
+
+message User {
+  string id         = 1;
+  string name       = 2;
+  string email      = 3;
+  string phone      = 4;
+  string role       = 5;
+  string status     = 6;
+  string created_at = 7;
+}
+
+message UserResponse {
+  User data = 1;
+}
+
+message ListUsersResponse {
+  repeated User data  = 1;
+  int32         page  = 2;
+  int32         limit = 3;
+  int32         total = 4;
+}
