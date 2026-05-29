@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// Handler menyimpan konfigurasi untuk api-gateway HTTP handler.
 type Handler struct {
 	appName       string
 	environment   string
@@ -15,6 +16,7 @@ type Handler struct {
 	contractsPath string
 }
 
+// NewHandler membuat Handler baru.
 func NewHandler(appName, environment, openAPIPath, contractsPath string) *Handler {
 	return &Handler{
 		appName:       appName,
@@ -24,6 +26,12 @@ func NewHandler(appName, environment, openAPIPath, contractsPath string) *Handle
 	}
 }
 
+// ContractsPath mengembalikan path ke direktori YAML contracts (dipakai di router).
+func (h *Handler) ContractsPath() string {
+	return h.contractsPath
+}
+
+// Health endpoint.
 func (h *Handler) Health(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"status":      "ok",
@@ -32,24 +40,30 @@ func (h *Handler) Health(c echo.Context) error {
 	})
 }
 
+// OpenAPI menyajikan file api-gateway.yaml utama.
 func (h *Handler) OpenAPI(c echo.Context) error {
-	return c.File(h.openAPIPath)
+	return c.File(filepath.Join(h.contractsPath, "api-gateway.yaml"))
 }
 
-// ServeContract serves a specific OpenAPI YAML file by name, e.g. /openapi/auth.yaml
-func (h *Handler) ServeContract(c echo.Context) error {
-	name := c.Param("file")
-	if name == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"message": "file name is required"})
-	}
-	path := filepath.Join(h.contractsPath, filepath.Base(name))
-	return c.File(path)
-}
-
-// SwaggerUI serves the Swagger UI HTML page using the CDN build.
-// A custom dropdown lets users switch between all 8 service contracts
-// without using StandalonePreset (which hijacks the URL to /docs).
+// SwaggerUI menyajikan halaman Swagger UI lengkap dengan dropdown pemilih service.
+// File YAML di-serve melalui route /openapi/* (echo.Static di router).
 func (h *Handler) SwaggerUI(c echo.Context) error {
+	contracts := []struct{ label, file string }{
+		{"API Gateway (port 8080)", "api-gateway.yaml"},
+		{"Auth Service (port 8081)", "auth.yaml"},
+		{"SME Service (port 8082)", "sme.yaml"},
+		{"Nearby Service (port 8083)", "nearby.yaml"},
+		{"Transaction Service (port 8084)", "transactions.yaml"},
+		{"Payment Service (port 8085)", "payments.yaml"},
+		{"Report Service (port 8087)", "reports.yaml"},
+		{"User Service (port 8088)", "users.yaml"},
+	}
+
+	options := ""
+	for _, c := range contracts {
+		options += fmt.Sprintf(`<option value="/openapi/%s">%s</option>`, c.file, c.label)
+	}
+
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,42 +76,43 @@ func (h *Handler) SwaggerUI(c echo.Context) error {
     body { margin: 0; padding: 0; font-family: sans-serif; }
     .topbar {
       background: #1b1b1b;
-      padding: 10px 20px;
+      padding: 12px 20px;
       display: flex;
       align-items: center;
       gap: 16px;
     }
-    .topbar span { color: #fff; font-size: 15px; font-weight: 600; }
+    .topbar span { color: #fff; font-size: 16px; font-weight: 700; }
     .topbar select {
       padding: 6px 12px;
       font-size: 14px;
       border-radius: 4px;
       border: none;
       cursor: pointer;
-      min-width: 280px;
+      min-width: 300px;
     }
+    .topbar a {
+      color: #aaa;
+      font-size: 13px;
+      text-decoration: none;
+      margin-left: auto;
+    }
+    .topbar a:hover { color: #fff; }
   </style>
 </head>
 <body>
 <div class="topbar">
   <span>%s</span>
-  <select id="contract-selector" onchange="loadContract(this.value)">
-    <option value="/openapi/api-gateway.yaml">API Gateway (port 8080)</option>
-    <option value="/openapi/auth.yaml">Auth Service (port 8081)</option>
-    <option value="/openapi/sme.yaml">SME Service (port 8082)</option>
-    <option value="/openapi/nearby.yaml">Nearby Service (port 8083)</option>
-    <option value="/openapi/transactions.yaml">Transaction Service (port 8084)</option>
-    <option value="/openapi/payments.yaml">Payment Service (port 8085)</option>
-    <option value="/openapi/users.yaml">User Service (port 8088)</option>
-    <option value="/openapi/reports.yaml">Report Service (port 8087)</option>
+  <select id="spec-selector" onchange="loadSpec(this.value)">
+    %s
   </select>
+  <a href="/health">health ✓</a>
 </div>
 <div id="swagger-ui"></div>
 <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
 <script>
-  var ui;
+  var ui = null;
 
-  function loadContract(url) {
+  function loadSpec(url) {
     if (ui) {
       ui.specActions.updateUrl(url);
       ui.specActions.download(url);
@@ -107,99 +122,115 @@ func (h *Handler) SwaggerUI(c echo.Context) error {
       url: url,
       dom_id: '#swagger-ui',
       deepLinking: false,
-      presets: [SwaggerUIBundle.presets.apis],
-      layout: 'BaseLayout'
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+      layout: 'BaseLayout',
+      validatorUrl: null,
+      tryItOutEnabled: true,
+      requestInterceptor: function(req) {
+        // Tambah Authorization header jika sudah ada token di sessionStorage
+        var token = sessionStorage.getItem('jwt_token');
+        if (token && !req.headers['Authorization']) {
+          req.headers['Authorization'] = 'Bearer ' + token;
+        }
+        return req;
+      }
     });
   }
 
-  loadContract('/openapi/api-gateway.yaml');
+  // Mulai dengan spec pertama
+  var initialSpec = document.getElementById('spec-selector').value;
+  loadSpec(initialSpec);
 </script>
 </body>
-</html>`, h.appName, h.appName)
+</html>`, h.appName, h.appName, options)
 
 	return c.HTML(http.StatusOK, html)
 }
 
+// ── Proxy stub handlers ────────────────────────────────────────────────────────
+// Semua handler ini akan diteruskan ke masing-masing service melalui gRPC
+// setelah integrasi gRPC client selesai. Saat ini mengembalikan 501.
+
 func (h *Handler) Login(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "auth login will be forwarded to auth-service through gRPC",
+		"message": "akan diteruskan ke auth-service melalui gRPC",
 	})
 }
 
 func (h *Handler) Register(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "auth registration will be forwarded to auth-service through gRPC",
+		"message": "akan diteruskan ke auth-service melalui gRPC",
 	})
 }
 
 func (h *Handler) ListUsers(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "user listing will be forwarded to user-service",
+		"message": "akan diteruskan ke user-service",
 	})
 }
 
 func (h *Handler) ListSMEs(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "SME listing will be forwarded to sme-service",
+		"message": "akan diteruskan ke sme-service melalui gRPC",
 	})
 }
 
 func (h *Handler) ListCategories(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "category listing will be forwarded to sme-service",
+		"message": "akan diteruskan ke sme-service",
 	})
 }
 
 func (h *Handler) GetCategory(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "category detail will be forwarded to sme-service",
+		"message": "akan diteruskan ke sme-service",
 	})
 }
 
 func (h *Handler) FindNearbySMEs(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "nearby SME search will be forwarded to nearby-service",
+		"message": "akan diteruskan ke nearby-service",
 	})
 }
 
 func (h *Handler) CreateTransaction(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "transaction creation will be forwarded to transaction-service",
+		"message": "akan diteruskan ke transaction-service melalui gRPC",
 	})
 }
 
 func (h *Handler) ListTransactions(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "transaction listing will be forwarded to transaction-service",
+		"message": "akan diteruskan ke transaction-service melalui gRPC",
 	})
 }
 
 func (h *Handler) GetTransaction(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "transaction detail will be forwarded to transaction-service",
+		"message": "akan diteruskan ke transaction-service melalui gRPC",
 	})
 }
 
 func (h *Handler) CreateVirtualAccount(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "virtual account creation will be forwarded to payment-service",
+		"message": "akan diteruskan ke payment-service",
 	})
 }
 
 func (h *Handler) DailyReport(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "daily report will be forwarded to report-service",
+		"message": "akan diteruskan ke report-service",
 	})
 }
 
 func (h *Handler) MonthlyReport(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "monthly report will be forwarded to report-service",
+		"message": "akan diteruskan ke report-service",
 	})
 }
 
 func (h *Handler) ExportReport(c echo.Context) error {
 	return c.JSON(http.StatusNotImplemented, map[string]string{
-		"message": "report export will be forwarded to report-service",
+		"message": "akan diteruskan ke report-service",
 	})
 }

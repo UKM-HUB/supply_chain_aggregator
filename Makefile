@@ -1,17 +1,18 @@
 # Supply Chain Aggregator — root Makefile
 #
-# Suggested build order (mirrors Step 15):
+# Suggested build order:
 #   1. make tidy-all          — download all module dependencies
 #   2. make build-all         — compile every service
-#   3. make docker-infra-up   — start PostgreSQL + RabbitMQ
+#   3. make docker-infra-up   — start PostgreSQL + RabbitMQ + Redis + Elasticsearch
 #   4. make migrate-up        — run all SQL migrations
-#   5. make run SVC=auth-service      (then sme, nearby, transaction, payment, communication, report)
+#   5. make run SVC=auth-service
 #   6. make e2e               — run end-to-end flow
 #   7. make docker-up         — build + start full stack in containers
 
 .DEFAULT_GOAL := help
 
 SERVICES := \
+	api-gateway \
 	auth-service \
 	sme-service \
 	nearby-service \
@@ -20,13 +21,14 @@ SERVICES := \
 	communication-service \
 	report-service
 
-SERVICES_DIR  := services
-PROTO_DIR     := proto
+SERVICES_DIR   := services
+PROTO_DIR      := proto
 MIGRATIONS_DIR := migrations
 
-# Database defaults (override via env or .env)
 POSTGRES_DSN  ?= postgres://sca:sca_pass@localhost:5432/supply_chain?sslmode=disable
 RABBITMQ_URL  ?= amqp://guest:guest@localhost:5672/
+REDIS_URL     ?= redis://localhost:6379
+ES_URL        ?= http://localhost:9200
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 .PHONY: help
@@ -41,7 +43,7 @@ help:
 	@echo ""
 	@echo "  Bulk targets:"
 	@echo "    build-all      Build all services"
-	@echo "    tidy-all       Run go mod tidy for all services"
+	@echo "    tidy-all       Run go mod tidy for all services (pkg first)"
 	@echo ""
 	@echo "  Proto:"
 	@echo "    proto          Generate Go code from all .proto files"
@@ -52,14 +54,23 @@ help:
 	@echo "    migrate-reset  Roll back all migrations"
 	@echo ""
 	@echo "  Docker:"
-	@echo "    docker-infra-up    Start PostgreSQL + RabbitMQ"
-	@echo "    docker-infra-down  Stop infrastructure containers"
-	@echo "    docker-up          Build + start full stack"
-	@echo "    docker-down        Stop full stack"
-	@echo "    docker-logs        Tail logs from all containers"
+	@echo "    docker-infra-up       Start Postgres + RabbitMQ + Redis + Elasticsearch"
+	@echo "    docker-infra-down     Stop infrastructure containers"
+	@echo "    docker-infra-kibana   Start infra + Kibana (observability profile)"
+	@echo "    docker-up             Build + start full stack"
+	@echo "    docker-down           Stop full stack"
+	@echo "    docker-logs           Tail logs from all containers"
+	@echo ""
+	@echo "  Health checks:"
+	@echo "    check-redis           Ping Redis"
+	@echo "    check-es              Ping Elasticsearch"
 	@echo ""
 	@echo "  Testing:"
 	@echo "    e2e            Run the end-to-end MVP flow script"
+	@echo ""
+	@echo "  Swagger / API Docs:"
+	@echo "    swagger        Start api-gateway dan buka Swagger UI"
+	@echo "    (URL)          http://localhost:8080/swagger"
 	@echo ""
 	@echo "  Example usage:"
 	@echo "    make build SVC=auth-service"
@@ -99,6 +110,8 @@ build-all:
 
 .PHONY: tidy-all
 tidy-all:
+	@echo "Running go mod tidy for shared pkg first..."
+	cd pkg && go mod tidy
 	@echo "Running go mod tidy for all services..."
 	@for svc in $(SERVICES); do \
 		echo "  → $$svc"; \
@@ -153,7 +166,17 @@ migrate-reset:
 .PHONY: docker-infra-up
 docker-infra-up:
 	docker compose -f deployments/docker-compose.infra.yml up -d
-	@echo "Infrastructure started. PostgreSQL: localhost:5432  RabbitMQ: localhost:5672 (UI: localhost:15672)"
+	@echo ""
+	@echo "Infrastructure started:"
+	@echo "  PostgreSQL     → localhost:5432"
+	@echo "  RabbitMQ       → localhost:5672  (UI: http://localhost:15672)"
+	@echo "  Redis          → localhost:6379"
+	@echo "  Elasticsearch  → http://localhost:9200"
+
+.PHONY: docker-infra-kibana
+docker-infra-kibana:
+	docker compose -f deployments/docker-compose.infra.yml --profile observability up -d
+	@echo "Kibana → http://localhost:5601"
 
 .PHONY: docker-infra-down
 docker-infra-down:
@@ -172,7 +195,26 @@ docker-down:
 docker-logs:
 	docker compose -f deployments/docker-compose.yml logs -f
 
+# ── Health checks ─────────────────────────────────────────────────────────────
+.PHONY: check-redis
+check-redis:
+	@echo "Pinging Redis at $(REDIS_URL)..."
+	@redis-cli -u $(REDIS_URL) ping || echo "Redis not reachable"
+
+.PHONY: check-es
+check-es:
+	@echo "Checking Elasticsearch at $(ES_URL)..."
+	@curl -sf $(ES_URL)/_cluster/health | python3 -m json.tool || echo "Elasticsearch not reachable"
+
 # ── E2E ───────────────────────────────────────────────────────────────────────
 .PHONY: e2e
 e2e:
 	bash scripts/e2e_flow.sh
+
+# ── Swagger / API Docs ────────────────────────────────────────────────────────
+.PHONY: swagger
+swagger:
+	@echo "Starting api-gateway (Swagger UI)..."
+	make run SVC=api-gateway
+	@echo ""
+	@echo "Swagger UI → http://localhost:8080/swagger"

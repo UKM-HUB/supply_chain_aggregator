@@ -7,18 +7,26 @@ import (
 )
 
 func RegisterRoutes(e *echo.Echo, handler *Handler, jwtSecret string) {
+	// ── Health ───────────────────────────────────────────────────────────────
 	e.GET("/health", handler.Health)
-	e.GET("/openapi.yaml", handler.OpenAPI)
+	e.GET("/api/v1/health", handler.Health)
+
+	// ── Swagger UI ───────────────────────────────────────────────────────────
+	// GET /swagger         → HTML halaman Swagger UI
+	// GET /openapi/*       → static YAML contract files (misal: /openapi/auth.yaml)
 	e.GET("/swagger", handler.SwaggerUI)
-	e.GET("/openapi/:file", handler.ServeContract)
+	e.Static("/openapi", handler.ContractsPath()) // serve seluruh direktori contracts
 
+	// Fallback untuk /openapi.yaml (backward compat)
+	e.GET("/openapi.yaml", handler.OpenAPI)
+
+	// ── Auth (public) ────────────────────────────────────────────────────────
 	api := e.Group("/api/v1")
-	api.GET("/health", handler.Health)
-
 	auth := api.Group("/auth")
 	auth.POST("/login", handler.Login)
 	auth.POST("/register", handler.Register)
 
+	// ── Protected routes ─────────────────────────────────────────────────────
 	protected := api.Group("")
 	protected.Use(gatewayMiddleware.JWT(jwtSecret))
 

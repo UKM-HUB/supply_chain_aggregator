@@ -17,6 +17,7 @@ func Load() Config {
 		Environment:   pkgconfig.GetEnv("APP_ENV", "development"),
 		HTTPPort:      pkgconfig.GetEnv("HTTP_PORT", "8080"),
 		JWTSecret:     pkgconfig.GetEnv("JWT_SECRET", "development-secret"),
+		// Path relatif dari direktori services/api-gateway ke root contracts
 		OpenAPIPath:   pkgconfig.GetEnv("OPENAPI_PATH", "../../contracts/openapi/api-gateway.yaml"),
 		ContractsPath: pkgconfig.GetEnv("CONTRACTS_PATH", "../../contracts/openapi"),
 	}

@@ -4,6 +4,7 @@ go 1.23
 
 require (
 	github.com/labstack/echo/v4 v4.13.3
+	github.com/robfig/cron/v3 v3.0.1
 	supply-chain-aggregator/pkg v0.0.0
 )
 
