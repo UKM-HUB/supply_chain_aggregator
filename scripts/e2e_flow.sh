@@ -9,15 +9,15 @@
 #   Report data available
 #
 # Usage:
-#   ./scripts/e2e_flow.sh           # starts services, runs flow, cleans up
-#   ./scripts/e2e_flow.sh --no-start  # skip service startup (already running)
+#   ./scripts/e2e_flow.sh              # start services, run flow, cleanup
+#   ./scripts/e2e_flow.sh --no-start   # skip startup (services already running)
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NO_START="${1:-}"
 
-# ── colours ──────────────────────────────────────────────────────────────────
+# ── colours ───────────────────────────────────────────────────────────────────
 BLUE='\033[0;34m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 RED='\033[0;31m';  BOLD='\033[1m';     NC='\033[0m'
 
@@ -32,10 +32,21 @@ require() {
 }
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+kill_port() {
+  local port=$1
+  local pids
+  pids=$(lsof -ti ":$port" 2>/dev/null || true)
+  if [[ -n "$pids" ]]; then
+    info "Killing stale process on port $port (pid: $pids)"
+    echo "$pids" | xargs kill -9 2>/dev/null || true
+    sleep 0.5
+  fi
+}
+
 wait_for() {
   local name=$1 url=$2
   info "Waiting for $name at $url ..."
-  for i in $(seq 1 20); do
+  for i in $(seq 1 30); do
     if curl -sf "$url" &>/dev/null; then
       ok "$name is up"
       return
@@ -46,16 +57,18 @@ wait_for() {
 }
 
 extract() {
-  # extract a JSON field using python3 (no jq dependency)
   python3 -c "import sys,json; d=json.load(sys.stdin); print(d$1)" 2>/dev/null
 }
 
 PIDS=()
+
 start_service() {
   local name=$1 dir=$2 port=$3
+  kill_port "$port"
   info "Starting $name on :$port ..."
-  (cd "$REPO_ROOT/services/$dir" && go run "./cmd/$name/..." ) &
+  (cd "$REPO_ROOT/services/$dir" && go run "./cmd/$name/...") &
   PIDS+=($!)
+  sleep 0.2
 }
 
 cleanup() {
@@ -63,8 +76,7 @@ cleanup() {
   for pid in "${PIDS[@]:-}"; do
     kill "$pid" 2>/dev/null || true
   done
-  # also kill any stray processes on the ports
-  for port in 8081 8082 8083 8084 8085 8087; do
+  for port in 8080 8081 8082 8083 8084 8085 8086 8087 50051 50052 50054; do
     lsof -ti ":$port" 2>/dev/null | xargs kill -9 2>/dev/null || true
   done
   echo -e "${GREEN}Done.${NC}"
@@ -82,6 +94,13 @@ echo -e "Repo: $REPO_ROOT\n"
 if [[ "$NO_START" != "--no-start" ]]; then
   trap cleanup EXIT
 
+  step "Killing any stale processes on service ports"
+  for port in 8080 8081 8082 8083 8084 8085 8086 8087; do
+    kill_port "$port"
+  done
+
+  step "Building & starting services"
+  start_service "api-gateway"         "api-gateway"         8080
   start_service "auth-service"        "auth-service"        8081
   start_service "sme-service"         "sme-service"         8082
   start_service "nearby-service"      "nearby-service"      8083
@@ -89,8 +108,10 @@ if [[ "$NO_START" != "--no-start" ]]; then
   start_service "payment-service"     "payment-service"     8085
   start_service "report-service"      "report-service"      8087
 
-  sleep 3
+  info "Waiting 5s for services to compile and boot..."
+  sleep 5
 
+  wait_for "api-gateway"         "http://localhost:8080/health"
   wait_for "auth-service"        "http://localhost:8081/health"
   wait_for "sme-service"         "http://localhost:8082/health"
   wait_for "nearby-service"      "http://localhost:8083/health"
@@ -100,10 +121,8 @@ if [[ "$NO_START" != "--no-start" ]]; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 1: SME registers account
-# ─────────────────────────────────────────────────────────────────────────────
 step "Step 1 — SME registers account"
-
+# ─────────────────────────────────────────────────────────────────────────────
 SME_REGISTER=$(curl -sf -X POST http://localhost:8081/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
@@ -121,10 +140,8 @@ ok "SME registered — id: $SME_USER_ID"
 json "$SME_REGISTER"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 2: SME creates business profile
+step "Step 2 — SME creates business profile"
 # ─────────────────────────────────────────────────────────────────────────────
-step "Step 2 — SME creates business profile with category and location"
-
 SME_PROFILE=$(curl -sf -X POST http://localhost:8082/api/v1/umkm \
   -H "Content-Type: application/json" \
   -d "{
@@ -146,10 +163,8 @@ ok "SME profile created — id: $SME_PROFILE_ID"
 json "$SME_PROFILE"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 3: Corporation logs in
-# ─────────────────────────────────────────────────────────────────────────────
 step "Step 3 — Corporation registers and logs in"
-
+# ─────────────────────────────────────────────────────────────────────────────
 curl -sf -X POST http://localhost:8081/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
@@ -164,28 +179,24 @@ CORP_LOGIN=$(curl -sf -X POST http://localhost:8081/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"corp@factory.test","password":"corp123"}')
 
-CORP_TOKEN=$(echo "$CORP_LOGIN"  | extract "['token']")
+CORP_TOKEN=$(echo "$CORP_LOGIN"   | extract "['token']")
 CORP_USER_ID=$(echo "$CORP_LOGIN" | extract "['user']['id']")
 ok "Corporation logged in — user_id: $CORP_USER_ID"
 info "JWT token: ${CORP_TOKEN:0:40}..."
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 4: Corporation searches nearby SMEs
+step "Step 4 — Corporation searches nearby SMEs"
 # ─────────────────────────────────────────────────────────────────────────────
-step "Step 4 — Corporation searches nearby SMEs (lat=-6.2, lng=106.8, category=food)"
-
 NEARBY=$(curl -sf \
   "http://localhost:8083/api/v1/nearby/umkm?lat=-6.2&lng=106.8&category_id=food&radius_km=10&limit=5")
 
 NEARBY_COUNT=$(echo "$NEARBY" | extract "['total']")
-ok "Found $NEARBY_COUNT nearby SME(s) matching category=food within 10 km"
+ok "Found $NEARBY_COUNT nearby SME(s) within 10 km"
 json "$NEARBY"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 5: Corporation creates a transaction
-# ─────────────────────────────────────────────────────────────────────────────
 step "Step 5 — Corporation creates a transaction"
-
+# ─────────────────────────────────────────────────────────────────────────────
 TXN=$(curl -sf -X POST http://localhost:8084/api/v1/transactions \
   -H "Content-Type: application/json" \
   -d "{
@@ -202,10 +213,8 @@ ok "Transaction created — id: $TXN_ID  invoice: $INVOICE  status: $TXN_STATUS"
 json "$TXN"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 6: Payment virtual account is created
+step "Step 6 — Create Xendit virtual account"
 # ─────────────────────────────────────────────────────────────────────────────
-step "Step 6 — Create Xendit virtual account for the transaction"
-
 VA=$(curl -sf -X POST http://localhost:8085/api/v1/gateway/create-va \
   -H "Content-Type: application/json" \
   -d "{
@@ -219,10 +228,8 @@ ok "Virtual account created — payment URL: $PAYMENT_URL"
 json "$VA"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 7: Xendit webhook — payment is PAID
-# ─────────────────────────────────────────────────────────────────────────────
 step "Step 7 — Simulate Xendit webhook (PAID)"
-
+# ─────────────────────────────────────────────────────────────────────────────
 WEBHOOK=$(curl -sf -X POST http://localhost:8085/api/v1/webhooks/xendit \
   -H "Content-Type: application/json" \
   -d "{
@@ -235,24 +242,20 @@ WEBHOOK=$(curl -sf -X POST http://localhost:8085/api/v1/webhooks/xendit \
 
 ok "Webhook processed"
 json "$WEBHOOK"
-info "→ payment.paid event published to RabbitMQ (fire-and-forget)"
-info "→ communication-service consumes and sends WhatsApp to 628222222222"
+info "→ payment.paid event published to RabbitMQ"
+info "→ communication-service konsumsi dan kirim WhatsApp ke 628222222222"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 8: Verify transaction status
+step "Step 8 — Verify transaction status"
 # ─────────────────────────────────────────────────────────────────────────────
-step "Step 8 — Verify transaction detail"
-
 TXN_DETAIL=$(curl -sf "http://localhost:8084/api/v1/transactions/$TXN_ID")
 FINAL_STATUS=$(echo "$TXN_DETAIL" | extract "['data']['status']")
 ok "Transaction $TXN_ID — status: $FINAL_STATUS"
 json "$TXN_DETAIL"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 9: Report data is available
+step "Step 9 — Report data"
 # ─────────────────────────────────────────────────────────────────────────────
-step "Step 9 — Report data is available"
-
 TODAY=$(date +%Y-%m-%d)
 DAILY=$(curl -sf "http://localhost:8087/api/v1/reports/daily?date=$TODAY")
 ok "Daily report for $TODAY"
@@ -262,8 +265,6 @@ MONTHLY=$(curl -sf "http://localhost:8087/api/v1/reports/monthly?year=$(date +%Y
 ok "Monthly report for $(date +%Y-%m)"
 json "$MONTHLY"
 
-# ─────────────────────────────────────────────────────────────────────────────
 echo -e "\n${GREEN}${BOLD}✓ E2E MVP flow completed successfully${NC}"
-echo -e "${YELLOW}Note: services use in-memory storage — data is not shared between${NC}"
-echo -e "${YELLOW}      services or persisted across restarts. Run migrations and${NC}"
-echo -e "${YELLOW}      connect POSTGRES_URL / RABBITMQ_URL for the full stack.${NC}\n"
+echo -e "${YELLOW}Note: in-memory storage — data tidak persist antar restart.${NC}"
+echo -e "${YELLOW}      Untuk production: sambungkan POSTGRES_URL + RABBITMQ_URL.${NC}\n"
