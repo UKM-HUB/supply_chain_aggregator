@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: Supply Chain Aggregator Report Service
+  version: 0.1.0
+  description: HTTP contract for daily, monthly, and exportable transaction reports.
+servers:
+  - url: http://localhost:8087
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Report service health check
+      security: []
+      responses:
+        '200':
+          description: Report service is healthy
+  /api/v1/reports/daily:
+    get:
+      summary: Get transaction summary for a specific day
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: Date in YYYY-MM-DD format. Defaults to today.
+          schema:
+            type: string
+            format: date
+            example: '2026-05-26'
+      responses:
+        '200':
+          description: Daily report returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DailyReportResponse'
+        '400':
+          description: Invalid date format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reports/monthly:
+    get:
+      summary: Get transaction summary for a specific month
+      parameters:
+        - name: year
+          in: query
+          required: false
+          description: Four-digit year. Defaults to current year.
+          schema:
+            type: integer
+            example: 2026
+        - name: month
+          in: query
+          required: false
+          description: Month number 1-12. Defaults to current month.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+            example: 5
+      responses:
+        '200':
+          description: Monthly report returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MonthlyReportResponse'
+        '400':
+          description: Invalid year or month
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/reports/export:
+    get:
+      summary: Export transactions as a CSV file for a date range
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: Start date in YYYY-MM-DD format. Defaults to first day of current month.
+          schema:
+            type: string
+            format: date
+            example: '2026-05-01'
+        - name: to
+          in: query
+          required: false
+          description: End date in YYYY-MM-DD format (inclusive). Defaults to today.
+          schema:
+            type: string
+            format: date
+            example: '2026-05-26'
+      responses:
+        '200':
+          description: CSV file download
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="report_20260501_20260526.csv"
+          content:
+            text/csv:
+              schema:
+                type: string
+                example: |
+                  id,invoice_number,user_id,amount,status,created_at
+                  txn-001,INV-20260526-1001,user-corp-001,3000000,paid,2026-05-26T08:00:00+08:00
+        '400':
+          description: Invalid date format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ReportSummary:
+      type: object
+      properties:
+        total_transaction:
+          type: integer
+          example: 100
+        total_paid:
+          type: number
+          format: double
+          example: 50000000
+        total_pending:
+          type: integer
+          example: 5
+    DailyReportResponse:
+      allOf:
+        - type: object
+          properties:
+            date:
+              type: string
+              format: date
+              example: '2026-05-26'
+        - $ref: '#/components/schemas/ReportSummary'
+    MonthlyReportResponse:
+      allOf:
+        - type: object
+          properties:
+            month:
+              type: string
+              example: '2026-05'
+        - $ref: '#/components/schemas/ReportSummary'
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: invalid date format, expected YYYY-MM-DD

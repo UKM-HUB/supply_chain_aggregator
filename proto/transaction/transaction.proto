@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package transaction;
+
+option go_package = "supply-chain-aggregator/services/transaction-service/internal/delivery/grpc/pb;transactionpb";
+
+service TransactionService {
+  rpc CreateTransaction(CreateTransactionRequest) returns (TransactionResponse);
+  rpc GetTransaction(GetTransactionRequest) returns (TransactionResponse);
+  rpc ListTransactions(ListTransactionsRequest) returns (ListTransactionsResponse);
+  rpc UpdateTransactionStatus(UpdateTransactionStatusRequest) returns (UpdateTransactionStatusResponse);
+}
+
+message CreateTransactionRequest {
+  string user_id = 1;
+  double amount = 2;
+  string payment_method = 3;
+}
+
+message GetTransactionRequest {
+  string id = 1;
+}
+
+message ListTransactionsRequest {
+  string user_id = 1;
+}
+
+message Transaction {
+  string id = 1;
+  string invoice_number = 2;
+  string user_id = 3;
+  double amount = 4;
+  string status = 5;
+  string payment_method = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message TransactionResponse {
+  Transaction data = 1;
+}
+
+message ListTransactionsResponse {
+  repeated Transaction data = 1;
+  int32 total = 2;
+}
+
+message UpdateTransactionStatusRequest {
+  string id     = 1;
+  string status = 2;
+}
+
+message UpdateTransactionStatusResponse {
+  bool   success = 1;
+  string message = 2;
+}

@@ -1,0 +1,161 @@
+include:
+  - docker-compose.infra.yml
+
+services:
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: api-gateway
+    container_name: sca_api_gateway
+    environment:
+      APP_ENV:       production
+      HTTP_PORT:     "8080"
+      JWT_SECRET:    ${JWT_SECRET:-changeme-in-production}
+      # Path ke folder contracts di dalam container
+      CONTRACTS_PATH: /app/contracts/openapi
+    volumes:
+      # Mount folder contracts agar YAML files bisa dibaca
+      - ../contracts/openapi:/app/contracts/openapi:ro
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: auth-service
+    container_name: sca_auth
+    environment:
+      APP_ENV:       production
+      HTTP_PORT:     "8081"
+      GRPC_PORT:     "50051"
+      JWT_SECRET:    ${JWT_SECRET:-changeme-in-production}
+      REDIS_HOST:    redis
+      REDIS_PORT:    "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "8081:8081"
+      - "50051:50051"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  sme-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: sme-service
+    container_name: sca_sme
+    environment:
+      APP_ENV:              production
+      HTTP_PORT:            "8082"
+      GRPC_PORT:            "50052"
+      REDIS_HOST:           redis
+      REDIS_PORT:           "6379"
+      REDIS_PASSWORD:       ${REDIS_PASSWORD:-}
+      ELASTICSEARCH_URL:    http://elasticsearch:9200
+    ports:
+      - "8082:8082"
+      - "50052:50052"
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  nearby-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: nearby-service
+    container_name: sca_nearby
+    environment:
+      APP_ENV:   production
+      HTTP_PORT: "8083"
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
+
+  transaction-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: transaction-service
+    container_name: sca_transaction
+    environment:
+      APP_ENV:   production
+      HTTP_PORT: "8084"
+      GRPC_PORT: "50054"
+    ports:
+      - "8084:8084"
+      - "50054:50054"
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: payment-service
+    container_name: sca_payment
+    environment:
+      APP_ENV:               production
+      HTTP_PORT:             "8085"
+      XENDIT_SECRET_KEY:     ${XENDIT_SECRET_KEY:-}
+      XENDIT_CALLBACK_TOKEN: ${XENDIT_CALLBACK_TOKEN:-}
+      RABBITMQ_URL:          amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+    ports:
+      - "8085:8085"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  communication-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: communication-service
+    container_name: sca_communication
+    environment:
+      APP_ENV:          production
+      HTTP_PORT:        "8086"
+      RABBITMQ_URL:     amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/
+      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-}
+      WHATSAPP_TOKEN:   ${WHATSAPP_TOKEN:-}
+    ports:
+      - "8086:8086"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  report-service:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile
+      args:
+        SERVICE_NAME: report-service
+    container_name: sca_report
+    environment:
+      APP_ENV:           production
+      HTTP_PORT:         "8087"
+      REPORT_OUTPUT_DIR: /app/reports
+    volumes:
+      - report_data:/app/reports
+    ports:
+      - "8087:8087"
+    restart: unless-stopped
+
+volumes:
+  report_data:

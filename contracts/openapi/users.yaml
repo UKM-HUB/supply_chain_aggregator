@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: Supply Chain Aggregator User Service
+  version: 0.1.0
+  description: HTTP contract for user profile management and paginated user listing.
+servers:
+  - url: http://localhost:8088
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: User service health check
+      security: []
+      responses:
+        '200':
+          description: User service is healthy
+  /api/v1/users:
+    get:
+      summary: List users with optional search and pagination
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            example: budi
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            example: active
+      responses:
+        '200':
+          description: User list returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/users/{id}:
+    get:
+      summary: Get user profile by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: user-corp-001
+      responses:
+        '200':
+          description: User profile returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: user-corp-001
+        name:
+          type: string
+          example: Budi Santoso
+        email:
+          type: string
+          format: email
+          example: budi@corp.test
+        phone:
+          type: string
+          example: '628123456789'
+        role:
+          type: string
+          example: CORPORATION
+        status:
+          type: string
+          example: active
+        created_at:
+          type: string
+          format: date-time
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 100
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: resource not found
